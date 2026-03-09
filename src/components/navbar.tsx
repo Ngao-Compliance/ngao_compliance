@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Shield } from "lucide-react";
@@ -12,9 +13,7 @@ export default async function Navbar() {
         <nav className="border-b border-ngao-border bg-ngao-ivory">
             <div className="container-wide flex h-16 items-center justify-between px-6 md:px-12 lg:px-24">
                 <Link href="/" className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-ngao-green flex items-center justify-center text-ngao-ivory">
-                        <Shield className="h-5 w-5" />
-                    </div>
+                    <Image src="/logo.png" alt="Ngao Logo" width={32} height={32} className="rounded-lg object-contain" />
                     <span className="heading-serif text-xl tracking-tight">Ngao</span>
                 </Link>
 
