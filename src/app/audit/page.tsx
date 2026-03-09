@@ -1,11 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Fingerprint } from "lucide-react";
+import { Shield, Fingerprint, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import dbConnect from "@/lib/mongoose";
 import VASP from "@/models/VASP";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
 
 async function getAuditLogs(topicId: string) {
     if (!topicId) return { error: "No Topic ID provided." };
@@ -44,10 +47,25 @@ async function getAuditLogs(topicId: string) {
 
 export default async function AuditTrailPage(props: { searchParams: Promise<{ vaspId?: string }> }) {
     await dbConnect();
-    const vasps = (await VASP.find({}).lean()) as any[];
+
+    const session = await getServerSession(authOptions);
+    if (!session) {
+        redirect("/api/auth/signin");
+    }
+
+    const userRole = (session.user as any)?.role;
+    const userName = (session.user as any)?.name;
+
+    let vasps = (await VASP.find({}).lean()) as any[];
+    const isVasp = userRole === "VASP";
+
+    // If VASP, restrict access to only their own VASP record
+    if (isVasp) {
+        vasps = vasps.filter(v => v.vaspId === userName);
+    }
 
     const searchParams = await props.searchParams;
-    let selectedVaspId = searchParams.vaspId;
+    let selectedVaspId = isVasp ? userName : searchParams.vaspId;
 
     if (!selectedVaspId && vasps.length > 0) {
         selectedVaspId = vasps[0].vaspId;
@@ -72,18 +90,21 @@ export default async function AuditTrailPage(props: { searchParams: Promise<{ va
             </div>
             <p className="text-ngao-muted text-lg mb-8">Cryptographically secured operations logs via Hedera Consensus Service.</p>
 
-            <div className="mb-6 flex gap-2 flex-wrap">
-                {vasps.map((v) => (
-                    <Link key={v.vaspId} href={`/audit?vaspId=${encodeURIComponent(v.vaspId)}`}>
-                        <Button 
-                            variant={v.vaspId === selectedVaspId ? "default" : "outline"}
-                            className={v.vaspId === selectedVaspId ? "bg-ngao-green text-ngao-ivory" : "border-ngao-green text-ngao-green"}
-                        >
-                            {v.vaspId}
-                        </Button>
-                    </Link>
-                ))}
-            </div>
+            {/* Only show VASP selector if they are a REGULATOR */}
+            {!isVasp && (
+                <div className="mb-6 flex gap-2 flex-wrap">
+                    {vasps.map((v) => (
+                        <Link key={v.vaspId} href={`/audit?vaspId=${encodeURIComponent(v.vaspId)}`}>
+                            <Button 
+                                variant={v.vaspId === selectedVaspId ? "default" : "outline"}
+                                className={v.vaspId === selectedVaspId ? "bg-ngao-green text-ngao-ivory" : "border-ngao-green text-ngao-green"}
+                            >
+                                {v.vaspId}
+                            </Button>
+                        </Link>
+                    ))}
+                </div>
+            )}
 
             <Card className="border-ngao-border shadow-sm">
                 <CardHeader className="bg-ngao-ivory border-b border-ngao-border rounded-t-lg flex flex-row items-center justify-between">
@@ -107,13 +128,14 @@ export default async function AuditTrailPage(props: { searchParams: Promise<{ va
                                     <TableHead className="py-4">Consensus Time</TableHead>
                                     <TableHead>Seq</TableHead>
                                     <TableHead>Action</TableHead>
+                                    <TableHead className="w-[100px]">Explorer</TableHead>
                                     <TableHead>Details</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {data.messages?.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-8 text-ngao-muted">No audit logs found on this topic.</TableCell>
+                                        <TableCell colSpan={5} className="text-center py-8 text-ngao-muted">No audit logs found on this topic.</TableCell>
                                     </TableRow>
                                 )}
                                 {data.messages?.map((msg: any) => (
@@ -126,6 +148,17 @@ export default async function AuditTrailPage(props: { searchParams: Promise<{ va
                                             <Badge variant="outline" className="border-ngao-green font-mono">
                                                 {msg.payload.action || "UNKNOWN"}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <a 
+                                                href={`https://hashscan.io/testnet/transaction/${msg.consensusTimestamp}/message`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center text-ngao-green hover:underline text-xs"
+                                                title="View on Hashscan Testnet"
+                                            >
+                                                View <ExternalLink className="h-3 w-3 ml-1" />
+                                            </a>
                                         </TableCell>
                                         <TableCell className="text-xs font-mono break-all max-w-md">
                                             {JSON.stringify(msg.payload)}

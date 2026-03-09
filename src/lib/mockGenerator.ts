@@ -11,7 +11,7 @@ const MIXER_ADDRESSES = ["0xTornadoCashProxy...", "bc1qmixer..."];
 const randomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
 const randomHex = (len: number) => Array.from({length: len}, () => Math.floor(Math.random() * 16).toString(16)).join('');
 
-export async function generateSingleMockTransaction() {
+export async function generateSingleMockTransaction(targetVaspId?: string) {
     await dbConnect();
 
     let vasps = await VASP.find({});
@@ -22,6 +22,15 @@ export async function generateSingleMockTransaction() {
             await VASP.create({ vaspId: name, topicId });
         }
         vasps = await VASP.find({});
+    }
+
+    if (targetVaspId) {
+        let existingVasp = await VASP.findOne({ vaspId: targetVaspId });
+        if (!existingVasp) {
+            console.log(`Creating VASP entry and Hedera Topic for ${targetVaspId}...`);
+            const topicId = await createHederaTopic(`Audit Log for ${targetVaspId}`) || "0.0.0";
+            existingVasp = await VASP.create({ vaspId: targetVaspId, topicId });
+        }
     }
 
     const isSanctioned = Math.random() < 0.1; // 10% chance
@@ -58,7 +67,14 @@ export async function generateSingleMockTransaction() {
 
     riskScore = Math.min(100, riskScore);
 
-    const selectedVasp = randomItem(vasps);
+    // Pick target VASP or random
+    let selectedVasp;
+    if (targetVaspId) {
+        selectedVasp = await VASP.findOne({ vaspId: targetVaspId });
+    }
+    if (!selectedVasp) {
+        selectedVasp = randomItem(vasps);
+    }
 
     const tx = new Transaction({
         txHash: '0x' + randomHex(64),

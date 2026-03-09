@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function TransactionFeed({ isRegulator = false }: { isRegulator?: boolean }) {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -114,17 +115,116 @@ export default function TransactionFeed({ isRegulator = false }: { isRegulator?:
                                         {tx.status}
                                     </TableCell>
                                     <TableCell>
-                                        {!isRegulator && tx.status === "FLAGGED" && (
-                                            <Link href={`/vasp/sar/${tx._id}`}>
-                                                <Button size="sm" className="bg-ngao-ochre hover:bg-orange-800 text-white h-7 text-xs">
-                                                    File SAR
-                                                </Button>
-                                            </Link>
-                                        )}
-                                        {isRegulator && (
-                                            <Button size="sm" variant="outline" className="border-ngao-green text-ngao-green h-7 text-xs">
-                                                View Event
-                                            </Button>
+                                        {!isRegulator ? (
+                                            tx.status === "FLAGGED" ? (
+                                                <Link href={`/vasp/sar/${tx._id}`}>
+                                                    <Button size="sm" className="bg-ngao-ochre hover:bg-orange-800 text-white h-7 text-xs">
+                                                        File SAR
+                                                    </Button>
+                                                </Link>
+                                            ) : (
+                                                <Dialog>
+                                                    <DialogTrigger render={<Button size="sm" variant="ghost" className="h-7 text-xs text-ngao-muted hover:text-ngao-dark" />}>
+                                                        View Details
+                                                    </DialogTrigger>
+                                                    <DialogContent className="sm:max-w-[500px]">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="heading-serif text-2xl text-ngao-dark">Transaction Summary</DialogTitle>
+                                                            <DialogDescription>
+                                                                Detailed view of the flagged operations and network activity.
+                                                            </DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="grid gap-4 py-4">
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Hash</span>
+                                                                <span className="col-span-3 text-sm font-mono break-all">{tx.txHash}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Amount</span>
+                                                                <span className="col-span-3 text-sm font-semibold">{tx.amount.toLocaleString()} {tx.asset}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Risk Score</span>
+                                                                <span className="col-span-3">
+                                                                    <Badge 
+                                                                        variant={tx.riskScore > 70 ? "destructive" : tx.riskScore > 30 ? "default" : "secondary"}
+                                                                        className={tx.riskScore > 70 ? "bg-ngao-ochre text-white" : tx.riskScore > 30 ? "bg-ngao-gold text-white" : "bg-ngao-warm-gray text-ngao-dark"}
+                                                                    >
+                                                                        {tx.riskScore}
+                                                                    </Badge>
+                                                                </span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Flags</span>
+                                                                <span className="col-span-3 text-sm">{tx.flags.length > 0 ? tx.flags.join(", ") : "None detected"}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Sender</span>
+                                                                <span className="col-span-3 text-sm font-mono break-all text-ngao-green">{tx.senderAddress}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Receiver</span>
+                                                                <span className="col-span-3 text-sm font-mono break-all text-ngao-green">{tx.receiverAddress}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                                <span className="text-sm font-medium text-ngao-muted">Time</span>
+                                                                <span className="col-span-3 text-sm text-ngao-muted">{new Date(tx.timestamp).toLocaleString()}</span>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            )
+                                        ) : (
+                                                <Dialog>
+                                                    <DialogTrigger render={<Button size="sm" variant="outline" className="border-ngao-green text-ngao-green h-7 text-xs" />}>
+                                                        View Event
+                                                    </DialogTrigger>
+                                                    <DialogContent className="sm:max-w-[500px]">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="heading-serif text-2xl text-ngao-dark">Transaction Summary</DialogTitle>
+                                                            <DialogDescription>
+                                                                Detailed view of the flagged operations and network activity.
+                                                            </DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="grid gap-4 py-4">
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Hash</span>
+                                                                <span className="col-span-3 text-sm font-mono break-all">{tx.txHash}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Amount</span>
+                                                                <span className="col-span-3 text-sm font-semibold">{tx.amount.toLocaleString()} {tx.asset}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Risk Score</span>
+                                                                <span className="col-span-3">
+                                                                    <Badge 
+                                                                        variant={tx.riskScore > 70 ? "destructive" : tx.riskScore > 30 ? "default" : "secondary"}
+                                                                        className={tx.riskScore > 70 ? "bg-ngao-ochre text-white" : tx.riskScore > 30 ? "bg-ngao-gold text-white" : "bg-ngao-warm-gray text-ngao-dark"}
+                                                                    >
+                                                                        {tx.riskScore}
+                                                                    </Badge>
+                                                                </span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Flags</span>
+                                                                <span className="col-span-3 text-sm">{tx.flags.length > 0 ? tx.flags.join(", ") : "None detected"}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Sender</span>
+                                                                <span className="col-span-3 text-sm font-mono break-all text-ngao-green">{tx.senderAddress}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4 border-b border-ngao-border pb-2">
+                                                                <span className="text-sm font-medium text-ngao-muted">Receiver</span>
+                                                                <span className="col-span-3 text-sm font-mono break-all text-ngao-green">{tx.receiverAddress}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                                <span className="text-sm font-medium text-ngao-muted">Time</span>
+                                                                <span className="col-span-3 text-sm text-ngao-muted">{new Date(tx.timestamp).toLocaleString()}</span>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
                                         )}
                                     </TableCell>
                                 </TableRow>
